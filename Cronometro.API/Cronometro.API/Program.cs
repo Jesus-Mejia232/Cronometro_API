@@ -43,6 +43,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+app.UseWebSockets(); // Habilita los WebSockets
+
+app.UseMiddleware<WebSocketMiddleware>(); // Monta el middleware personalizado
 
 app.UseHttpsRedirection();
 
