@@ -1,0 +1,43 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35913.81
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cronometro.Entities", "Cronometro.Entities\Cronometro.Entities.csproj", "{683DE4E9-B434-4858-AF2A-605B47AFAEAE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cronometro.DataAccess", "Cronometro.DataAccess\Cronometro.DataAccess.csproj", "{2478EB60-BB11-4055-854F-6581826923FD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ctronometro.BusinessLogic", "Ctronometro.BusinessLogic\Ctronometro.BusinessLogic.csproj", "{6160D0B5-8216-4D61-A02E-A0DA6A424D1B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cronometro.API.", "Cronometro.API\Cronometro.API..csproj", "{E86F323F-9297-41BD-B864-77F307BC44B5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{683DE4E9-B434-4858-AF2A-605B47AFAEAE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{683DE4E9-B434-4858-AF2A-605B47AFAEAE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{683DE4E9-B434-4858-AF2A-605B47AFAEAE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{683DE4E9-B434-4858-AF2A-605B47AFAEAE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2478EB60-BB11-4055-854F-6581826923FD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2478EB60-BB11-4055-854F-6581826923FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2478EB60-BB11-4055-854F-6581826923FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2478EB60-BB11-4055-854F-6581826923FD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6160D0B5-8216-4D61-A02E-A0DA6A424D1B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6160D0B5-8216-4D61-A02E-A0DA6A424D1B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6160D0B5-8216-4D61-A02E-A0DA6A424D1B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6160D0B5-8216-4D61-A02E-A0DA6A424D1B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E86F323F-9297-41BD-B864-77F307BC44B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E86F323F-9297-41BD-B864-77F307BC44B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E86F323F-9297-41BD-B864-77F307BC44B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E86F323F-9297-41BD-B864-77F307BC44B5}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {D1139C85-7C42-4478-9C5B-7D971F043519}
+	EndGlobalSection
+EndGlobal
