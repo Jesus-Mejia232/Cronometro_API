@@ -33,5 +33,20 @@ namespace Ctronometro.BusinessLogic.Services
             }
         }
 
+        public ServiceResult FinalizarCronometro(int registroID, TimeSpan horaFin)
+        {
+            var result = new ServiceResult();
+            try
+            {
+                var update = _cronometroReposotory.Finalizar(registroID, horaFin);
+                return result.Ok(update);
+            }
+            catch (Exception ex)
+            {
+                return result.Error(ex.Message);
+            }
+        }
+
+
     }
 }

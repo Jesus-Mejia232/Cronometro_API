@@ -11,5 +11,7 @@ namespace Cronometro.DataAccess.Repositories
         public IEnumerable<T> List();
         public RequestStatus Insert(T item);
         public T Find(int? id);
+        public RequestStatus Update(T item);
+
     }
 }

@@ -10,5 +10,6 @@ namespace Cronometro.DataAccess.Repositories
     {
         public int code_Status { get; set; }
         public string message_Status { get; set; }
+        public int? RegistroID { get; set; } // NUEVO
     }
 }

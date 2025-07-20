@@ -10,7 +10,8 @@ namespace Cronometro.API_.Extensions
         public MappingProfileExtensions()
         {
             CreateMap<tbProyectosTiempos, ProyectosTiemposViewModel>().ReverseMap();
- 
+            CreateMap<ProyectoTiempoParcialDto, tbProyectosTiempos>();
+
         }
     }
 }

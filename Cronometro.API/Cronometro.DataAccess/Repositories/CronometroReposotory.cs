@@ -1,6 +1,7 @@
 ﻿using Cronometro.Entities.Entities;
 using Dapper;
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,8 +27,8 @@ namespace Cronometro.DataAccess.Repositories
             parameter.Add("@ProyectoCode", item.ProyectoCode, System.Data.DbType.String, System.Data.ParameterDirection.Input);
             parameter.Add("@Descripcion", item.Descripcion, System.Data.DbType.String, System.Data.ParameterDirection.Input);
             parameter.Add("@HoraInicio", item.HoraInicio, System.Data.DbType.Time, System.Data.ParameterDirection.Input);
-            parameter.Add("@HoraFin", item.HoraFin, System.Data.DbType.Time, System.Data.ParameterDirection.Input);
-            parameter.Add("@TotalHoras", item.TotalHoras, System.Data.DbType.Time, System.Data.ParameterDirection.Input);
+            //parameter.Add("@HoraFin", item.HoraFin, System.Data.DbType.Time, System.Data.ParameterDirection.Input);
+            //parameter.Add("@TotalHoras", item.TotalHoras, System.Data.DbType.Time, System.Data.ParameterDirection.Input);
             parameter.Add("@FechaWork", item.FechaWork, System.Data.DbType.DateTime, System.Data.ParameterDirection.Input);
             parameter.Add("@FechaSystema", item.FechaSystema, System.Data.DbType.DateTime, System.Data.ParameterDirection.Input);
             parameter.Add("@NombreUsuario", item.Nombreusuario, System.Data.DbType.String, System.Data.ParameterDirection.Input);
@@ -47,10 +48,47 @@ namespace Cronometro.DataAccess.Repositories
             {
                 return new RequestStatus { code_Status = 0, message_Status = $"Error inesperado: {ex.Message}" };
             }
+
         }
 
 
+
+        public RequestStatus Finalizar(int registroID, TimeSpan horaFin)
+        {
+            var parameter = new DynamicParameters();
+            parameter.Add("@RegistroID", registroID, System.Data.DbType.Int32, System.Data.ParameterDirection.Input);
+            parameter.Add("@HoraFin", horaFin, System.Data.DbType.Time, System.Data.ParameterDirection.Input);
+
+            try
+            {
+                using var db = new SqlConnection(CronometroAPI_DBContext.ConnectionString);
+                var result = db.QueryFirstOrDefault<RequestStatus>(
+                    ScriptDataBase.Cronometro_Finalizar,
+                    parameter,
+                    commandType: System.Data.CommandType.StoredProcedure);
+
+                return result ?? new RequestStatus
+                {
+                    code_Status = 0,
+                    message_Status = "Error desconocido"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new RequestStatus
+                {
+                    code_Status = 0,
+                    message_Status = $"Error inesperado: {ex.Message}"
+                };
+            }
+        }
+
         public IEnumerable<tbProyectosTiempos> List()
+        {
+            throw new NotImplementedException();
+        }
+
+        public RequestStatus Update(tbProyectosTiempos item)
         {
             throw new NotImplementedException();
         }

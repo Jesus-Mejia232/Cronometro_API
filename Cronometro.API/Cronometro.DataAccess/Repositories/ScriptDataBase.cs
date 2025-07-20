@@ -10,5 +10,6 @@ namespace Cronometro.DataAccess.Repositories
     {
         public static string Cronmetro_Listar = "[].[]";
         public static string Cronmetro_Insertar = "[Prod].[SP_Proyectos_Tiempos_Iniciar]";
+        public static string Cronometro_Finalizar = "[Prod].[SP_Proyectos_Tiempos_Terminar]";
     }
 }
