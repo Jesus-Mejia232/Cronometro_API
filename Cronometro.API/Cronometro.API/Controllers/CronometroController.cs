@@ -5,6 +5,7 @@ using Cronometro.Entities.Entities;
 using Ctronometro.BusinessLogic.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.WebSockets;
+using System.Text;
 using static Ctronometro.BusinessLogic.Services.GeneralService;
 
 namespace Cronometro.API_.Controllers
@@ -36,6 +37,11 @@ namespace Cronometro.API_.Controllers
 
                 var socketId = Guid.NewGuid().ToString();
                 _connectionManager.AddSocket(socketId, socket);
+
+                // Enviar el socketId al cliente inmediatamente
+                var welcomeMessage = $"{{\"type\":\"connection\",\"socketId\":\"{socketId}\",\"message\":\"Connected successfully\"}}";
+                var welcomeBytes = Encoding.UTF8.GetBytes(welcomeMessage);
+                await socket.SendAsync(new ArraySegment<byte>(welcomeBytes), WebSocketMessageType.Text, true, CancellationToken.None);
 
                 // Mantener la conexión activa y manejar mensajes entrantes
                 var buffer = new byte[1024 * 4];

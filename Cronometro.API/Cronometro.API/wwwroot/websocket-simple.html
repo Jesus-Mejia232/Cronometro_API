@@ -128,6 +128,12 @@
         let socketId = null;
         let registroActual = null;
         
+        // Variables para el contador independiente
+        let timerInterval = null;
+        let tiempoInicio = null;
+        let tiempoTranscurrido = 0;
+        let timerActivo = false;
+        
         function mensaje(texto) {
             const div = document.getElementById('messages');
             const time = new Date().toLocaleTimeString();
@@ -149,6 +155,57 @@
             const m = Math.floor((segundos % 3600) / 60).toString().padStart(2, '0');
             const s = (segundos % 60).toString().padStart(2, '0');
             return `${h}:${m}:${s}`;
+        }
+        
+        // Funciones para el contador independiente
+        function iniciarContadorLocal() {
+            if (timerActivo) return;
+            
+            timerActivo = true;
+            tiempoInicio = Date.now();
+            tiempoTranscurrido = 0;
+            
+            timerInterval = setInterval(() => {
+                if (timerActivo) {
+                    tiempoTranscurrido = Math.floor((Date.now() - tiempoInicio) / 1000);
+                    document.getElementById('timer').textContent = formatearTiempo(tiempoTranscurrido);
+                }
+            }, 1000);
+            
+            mensaje('🕐 Contador local iniciado');
+        }
+        
+        function detenerContadorLocal() {
+            if (!timerActivo) return;
+            
+            timerActivo = false;
+            
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            
+            mensaje('⏸️ Contador local detenido');
+        }
+        
+        function resetearContadorLocal() {
+            detenerContadorLocal();
+            tiempoTranscurrido = 0;
+            document.getElementById('timer').textContent = '00:00:00';
+            mensaje('🔄 Contador local reseteado');
+        }
+        
+        function sincronizarContador(segundosServidor) {
+            if (timerActivo && segundosServidor !== undefined) {
+                // Sincronizar con el tiempo del servidor
+                const diferencia = Math.abs(tiempoTranscurrido - segundosServidor);
+                if (diferencia > 2) { // Solo sincronizar si hay más de 2 segundos de diferencia
+                    tiempoInicio = Date.now() - (segundosServidor * 1000);
+                    tiempoTranscurrido = segundosServidor;
+                    document.getElementById('timer').textContent = formatearTiempo(segundosServidor);
+                    mensaje(`🔄 Sincronizado con servidor: ${segundosServidor}s`);
+                }
+            }
         }
         
         function conectar() {
@@ -173,9 +230,19 @@
             ws.onmessage = function(event) {
                 try {
                     const data = JSON.parse(event.data);
+                    
+                    // Si es el mensaje de conexión inicial, guardar el socketId del servidor
+                    if (data.type === 'connection' && data.socketId) {
+                        socketId = data.socketId;
+                        mensaje(`🆔 Socket ID recibido: ${socketId}`);
+                        return;
+                    }
+                    
+                    // Si es una actualización del cronometro
                     if (data.elapsedSeconds !== undefined) {
-                        document.getElementById('timer').textContent = formatearTiempo(data.elapsedSeconds);
-                        mensaje(`⏱️ ${data.elapsedSeconds}s`);
+                        // Sincronizar el contador local con el servidor
+                        sincronizarContador(data.elapsedSeconds);
+                        mensaje(`⏱️ Servidor: ${data.elapsedSeconds}s`);
                     }
                 } catch (e) {
                     mensaje(`📨 ${event.data}`);
@@ -242,6 +309,9 @@
                         registroActual = resultado.data;
                         mensaje(`✅ Cronómetro iniciado (ID: ${registroActual})`);
                         document.getElementById('btnFinalizar').disabled = false;
+                        
+                        // Iniciar el contador independiente
+                        iniciarContadorLocal();
                     } else {
                         mensaje(`❌ Error: ${resultado.message}`);
                     }
@@ -276,8 +346,10 @@
                 if (response.ok) {
                     mensaje('✅ Cronómetro finalizado');
                     registroActual = null;
-                    document.getElementById('timer').textContent = '00:00:00';
                     document.getElementById('btnFinalizar').disabled = true;
+                    
+                    // Detener y resetear el contador independiente
+                    resetearContadorLocal();
                 } else {
                     mensaje('❌ Error al finalizar');
                 }
@@ -290,6 +362,8 @@
         
         function limpiar() {
             document.getElementById('messages').innerHTML = '';
+            // También resetear el contador independiente
+            resetearContadorLocal();
         }
     </script>
 </body>
