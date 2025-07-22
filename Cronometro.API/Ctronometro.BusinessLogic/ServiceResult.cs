@@ -21,6 +21,7 @@ namespace Cronometro.BusinessLogic
         Error = 500,
         BadRequest = 501,
         Unauthorized = 502,
-        Info = 503
+        Info = 503,
+        code_Status = 1
     }
 }
