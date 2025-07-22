@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cronómetro WebSocket Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .timer-display {
+            font-size: 3em;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+            color: #2c3e50;
+            font-family: 'Courier New', monospace;
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .status {
+            text-align: center;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .status.connected {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.connecting {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        .start-btn {
+            background-color: #27ae60;
+        }
+        .start-btn:hover {
+            background-color: #229954;
+        }
+        .stop-btn {
+            background-color: #e74c3c;
+        }
+        .stop-btn:hover {
+            background-color: #c0392b;
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .logs {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+        .log-entry {
+            margin: 2px 0;
+        }
+        .log-entry.info {
+            color: #3498db;
+        }
+        .log-entry.success {
+            color: #27ae60;
+        }
+        .log-entry.error {
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🕐 Cronómetro WebSocket Test</h1>
+        
+        <div class="timer-display" id="timerDisplay">00:00:00</div>
+        
+        <div class="status disconnected" id="wsStatus">
+            WebSocket: Desconectado
+        </div>
+        
+        <div class="form-group">
+            <label for="proyectoId">ID del Proyecto:</label>
+            <input type="number" id="proyectoId" value="1" min="1">
+        </div>
+        
+        <div class="form-group">
+            <label for="empleadoId">ID del Empleado:</label>
+            <input type="number" id="empleadoId" value="1" min="1">
+        </div>
+        
+        <div class="controls">
+            <button id="connectBtn" onclick="connectWebSocket()">Conectar WebSocket</button>
+            <button id="startBtn" class="start-btn" onclick="startTimer()" disabled>Iniciar Cronómetro</button>
+            <button id="stopBtn" class="stop-btn" onclick="stopTimer()" disabled>Finalizar Cronómetro</button>
+            <button onclick="clearLogs()">Limpiar Logs</button>
+        </div>
+        
+        <div class="logs" id="logs"></div>
+    </div>
+
+    <script>
+        let ws = null;
+        let socketId = null;
+        let currentRegistroId = null;
+        let startTime = null;
+        
+        function log(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logs.appendChild(logEntry);
+            logs.scrollTop = logs.scrollHeight;
+        }
+        
+        function updateStatus(status, className) {
+            const statusElement = document.getElementById('wsStatus');
+            statusElement.textContent = `WebSocket: ${status}`;
+            statusElement.className = `status ${className}`;
+        }
+        
+        function updateButtons(connected, timerRunning) {
+            document.getElementById('connectBtn').disabled = connected;
+            document.getElementById('startBtn').disabled = !connected || timerRunning;
+            document.getElementById('stopBtn').disabled = !connected || !timerRunning;
+        }
+        
+        function formatTime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        function connectWebSocket() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                log('WebSocket ya está conectado', 'info');
+                return;
+            }
+            
+            updateStatus('Conectando...', 'connecting');
+            log('Intentando conectar WebSocket...', 'info');
+            
+            // Generar un ID único para esta conexión
+            socketId = generateUUID();
+            
+            // Conectar al endpoint WebSocket
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/wscronometro`;
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = function(event) {
+                updateStatus('Conectado', 'connected');
+                updateButtons(true, false);
+                log('WebSocket conectado exitosamente', 'success');
+            };
+            
+            ws.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.registroId && data.elapsedSeconds !== undefined) {
+                        document.getElementById('timerDisplay').textContent = formatTime(data.elapsedSeconds);
+                        log(`Timer actualizado: ${data.elapsedSeconds}s (Registro: ${data.registroId})`, 'info');
+                    }
+                } catch (e) {
+                    // Si no es JSON, mostrar el mensaje tal como viene
+                    log(`Mensaje recibido: ${event.data}`, 'info');
+                }
+            };
+            
+            ws.onclose = function(event) {
+                updateStatus('Desconectado', 'disconnected');
+                updateButtons(false, false);
+                log(`WebSocket cerrado. Código: ${event.code}, Razón: ${event.reason}`, 'error');
+                ws = null;
+                socketId = null;
+            };
+            
+            ws.onerror = function(error) {
+                log('Error en WebSocket: ' + error, 'error');
+                updateStatus('Error', 'disconnected');
+            };
+        }
+        
+        async function startTimer() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                log('WebSocket no está conectado', 'error');
+                return;
+            }
+            
+            const proyectoId = document.getElementById('proyectoId').value;
+            const empleadoId = document.getElementById('empleadoId').value;
+            
+            if (!proyectoId || !empleadoId) {
+                log('Por favor ingrese ID de proyecto y empleado', 'error');
+                return;
+            }
+            
+            const timerData = {
+                proy_ID: parseInt(proyectoId),
+                empl_ID: parseInt(empleadoId),
+                prti_HoraInicio: new Date().toISOString(),
+                prti_Descripcion: "Timer iniciado desde WebSocket test"
+            };
+            
+            try {
+                log('Iniciando cronómetro...', 'info');
+                
+                const response = await fetch('/api/Cronometro/Insertar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Socket-Id': socketId
+                    },
+                    body: JSON.stringify(timerData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    currentRegistroId = result.data;
+                    startTime = new Date();
+                    updateButtons(true, true);
+                    log(`Cronómetro iniciado exitosamente. Registro ID: ${currentRegistroId}`, 'success');
+                } else {
+                    log(`Error al iniciar cronómetro: ${result.message || 'Error desconocido'}`, 'error');
+                }
+            } catch (error) {
+                log(`Error en la petición: ${error.message}`, 'error');
+            }
+        }
+        
+        async function stopTimer() {
+            if (!currentRegistroId) {
+                log('No hay cronómetro activo para detener', 'error');
+                return;
+            }
+            
+            const now = new Date();
+            const elapsed = Math.floor((now - startTime) / 1000);
+            const hours = Math.floor(elapsed / 3600);
+            const minutes = Math.floor((elapsed % 3600) / 60);
+            const seconds = elapsed % 60;
+            const timeSpan = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            try {
+                log('Finalizando cronómetro...', 'info');
+                
+                const response = await fetch(`/api/Cronometro/Finalizar/${currentRegistroId}/${timeSpan}`, {
+                    method: 'PUT',
+                    headers: {
+                        'X-Connection-Id': socketId
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    updateButtons(true, false);
+                    log(`Cronómetro finalizado exitosamente. Tiempo total: ${timeSpan}`, 'success');
+                    currentRegistroId = null;
+                    startTime = null;
+                    document.getElementById('timerDisplay').textContent = '00:00:00';
+                } else {
+                    log(`Error al finalizar cronómetro: ${result.message || 'Error desconocido'}`, 'error');
+                }
+            } catch (error) {
+                log(`Error en la petición: ${error.message}`, 'error');
+            }
+        }
+        
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+        
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+        
+        // Conectar automáticamente al cargar la página
+        window.onload = function() {
+            log('Página cargada. Listo para conectar WebSocket.', 'info');
+        };
+    </script>
+</body>
+</html>

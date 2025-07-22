@@ -1,47 +1,73 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System.Net.WebSockets;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Channels;
+using static Ctronometro.BusinessLogic.Services.GeneralService;
 
 public class WebSocketMiddleware
 {
     private readonly RequestDelegate _next;
-    public WebSocketMiddleware(RequestDelegate next) => _next = next;
+    private readonly WebSocketConnectionManager _manager;
 
-    public async Task Invoke(HttpContext context)
+
+    public WebSocketMiddleware(RequestDelegate next, WebSocketConnectionManager manager)
     {
-        if (context.Request.Path == "/ws/cronometro")
-        {
-            if (context.WebSockets.IsWebSocketRequest)
-            {
-                using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-                await IniciarCronometroTiempoReal(webSocket);
-            }
-            else
-            {
-                context.Response.StatusCode = 400;
-            }
-        }
-        else
+        _next = next;
+        _manager = manager;
+    }
+    public async Task InvokeAsync(HttpContext context)
+    {
+        if (!context.WebSockets.IsWebSocketRequest)
         {
             await _next(context);
+            return;
         }
-    }
 
-    private async Task IniciarCronometroTiempoReal(WebSocket socket)
-    {
-        var cts = new CancellationTokenSource();
-        var startTime = DateTime.Now;
+        var socket = await context.WebSockets.AcceptWebSocketAsync();
+        var connectionId = Guid.NewGuid().ToString();
 
-        while (!cts.Token.IsCancellationRequested && socket.State == WebSocketState.Open)
+        _manager.AddSocket(connectionId, socket);
+
+        // Guardar connectionId en contexto para usarlo en controlador (por ejemplo, headers o query)
+        context.Items["WebSocketConnectionId"] = connectionId;
+
+        await Receive(socket, async (result, buffer) =>
         {
-            var elapsed = DateTime.Now - startTime;
-            var tiempo = $"{elapsed.Hours:D2}:{elapsed.Minutes:D2}:{elapsed.Seconds:D2}";
-            var buffer = Encoding.UTF8.GetBytes(tiempo);
+            if (result.MessageType == WebSocketMessageType.Close)
+            {
+                await _manager.RemoveSocket(connectionId);
+            }
+        });
+    }
+    // En tu servicio o middleware WebSocket, algo como:
 
-            await socket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None);
+    public async Task StartCronometroAsync(WebSocket socket, CancellationToken token)
+    {
+        int segundos = 0;
 
-            await Task.Delay(1000); // enviar cada segundo
+        while (!token.IsCancellationRequested && socket.State == WebSocketState.Open)
+        {
+            segundos++;
+
+            var mensaje = JsonSerializer.Serialize(new { elapsedSeconds = segundos });
+            var buffer = Encoding.UTF8.GetBytes(mensaje);
+            var segment = new ArraySegment<byte>(buffer);
+
+            await socket.SendAsync(segment, WebSocketMessageType.Text, true, token);
+
+            await Task.Delay(1000, token); // Espera 1 segundo
         }
     }
+
+    private async Task Receive(WebSocket socket, Action<WebSocketReceiveResult, byte[]> handleMessage)
+    {
+        var buffer = new byte[1024 * 4];
+        while (socket.State == WebSocketState.Open)
+        {
+            var result = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+            handleMessage(result, buffer);
+        }
+    }
+    
 }
